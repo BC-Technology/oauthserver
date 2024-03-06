@@ -60,12 +60,24 @@ func getAppleClientSecret(appleClientID, appleTeamID, appleKeyID string, applePr
 	return clientSecret, nil
 }
 
-func getAppleUserData(accessCode, appleClientID, appleTeamID, appleKeyID string, applePrivateKey []byte) (user oauthUser, err error) {
+func GetAppleUserData(accessCode, appleClientID, appleTeamID, appleKeyID string, applePrivateKey []byte) (user oauthUser, err error) {
 	appleClientSecret, err := getAppleClientSecret(appleClientID, appleTeamID, appleKeyID, applePrivateKey)
 	if err != nil {
-		return user, err
+		return user, fmt.Errorf("error getting apple client secret: %v", err)
 	}
 
+	claims, err := getAppleClaims(appleClientID, appleClientSecret, accessCode)
+	if err != nil {
+		return user, fmt.Errorf("error getting apple claims: %v", err)
+	}
+
+	return oauthUser{
+		Email:      claims["email"].(string),
+		ProviderID: claims["sub"].(string),
+	}, nil
+}
+
+func getAppleClaims(appleClientID string, appleClientSecret string, accessCode string) (jwt.MapClaims, error) {
 	data := url.Values{}
 	data.Set("client_id", appleClientID)
 	data.Set("client_secret", appleClientSecret)
@@ -75,37 +87,32 @@ func getAppleUserData(accessCode, appleClientID, appleTeamID, appleKeyID string,
 
 	res, err := http.PostForm(appleAuthURL, data)
 	if err != nil {
-		return user, fmt.Errorf("error making request to apple: %v", err)
+		return nil, fmt.Errorf("error making request to apple: %v", err)
 	}
 
 	defer res.Body.Close()
 
 	var responseDict map[string]interface{}
 	if err := json.NewDecoder(res.Body).Decode(&responseDict); err != nil {
-		return user, fmt.Errorf("error decoding response body")
+		return nil, fmt.Errorf("error decoding response body")
 	}
 
 	if err, ok := responseDict["error"]; ok {
-		return user, fmt.Errorf("error from apple: %s, error description: %v", err, responseDict["error_description"])
+		return nil, fmt.Errorf("error from apple: %s, error description: %v", err, responseDict["error_description"])
 	}
 
 	if responseDict["id_token"] == "" {
-		return user, fmt.Errorf("apple didn't return id_token")
+		return nil, fmt.Errorf("apple didn't return id_token")
 	}
 
-	// Decoding the ID token
 	decoded, _, err := new(jwt.Parser).ParseUnverified(responseDict["id_token"].(string), jwt.MapClaims{})
 	if err != nil {
-		return user, fmt.Errorf("error decoding id_token")
+		return nil, fmt.Errorf("error decoding id_token")
 	}
 
 	claims, ok := decoded.Claims.(jwt.MapClaims)
 	if !ok {
-		return user, fmt.Errorf("error decoding id_token: claims not map")
+		return nil, fmt.Errorf("error decoding id_token: claims not map")
 	}
-
-	return oauthUser{
-		Email:      claims["email"].(string),
-		ProviderID: claims["sub"].(string),
-	}, nil
+	return claims, nil
 }

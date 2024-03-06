@@ -1,5 +1,7 @@
 package oauthserver
 
+import "fmt"
+
 type (
 	oauthRequest struct {
 		AccessToken string `json:"access_token"`
@@ -61,5 +63,16 @@ func (r facebookResponse) user() oauthUser {
 		Email:      r.Email,
 		ProviderID: r.ID,
 		Name:       r.Name,
+	}
+}
+
+func GetUserData(provider Provider, accessToken string) (oauthUser, error) {
+	switch provider {
+	case GoogleProvider:
+		return getGoogleUserData(accessToken)
+	case FacebookProvider:
+		return getFacebookUserData(accessToken)
+	default:
+		return oauthUser{}, fmt.Errorf("provider not supported")
 	}
 }
