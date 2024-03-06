@@ -60,7 +60,7 @@ func getAppleClientSecret(appleClientID, appleTeamID, appleKeyID string, applePr
 	return clientSecret, nil
 }
 
-func GetAppleUserData(accessCode, appleClientID, appleTeamID, appleKeyID string, applePrivateKey []byte) (user oauthUser, err error) {
+func GetAppleUserData(accessCode, appleClientID, appleTeamID, appleKeyID string, applePrivateKey []byte) (user User, err error) {
 	appleClientSecret, err := getAppleClientSecret(appleClientID, appleTeamID, appleKeyID, applePrivateKey)
 	if err != nil {
 		return user, fmt.Errorf("error getting apple client secret: %v", err)
@@ -71,7 +71,7 @@ func GetAppleUserData(accessCode, appleClientID, appleTeamID, appleKeyID string,
 		return user, fmt.Errorf("error getting apple claims: %v", err)
 	}
 
-	return oauthUser{
+	return User{
 		Email:      claims["email"].(string),
 		ProviderID: claims["sub"].(string),
 	}, nil

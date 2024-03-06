@@ -3,16 +3,7 @@ package oauthserver
 import "fmt"
 
 type (
-	oauthRequest struct {
-		AccessToken string `json:"access_token"`
-		DeviceID    string `json:"device_id"`
-		Name        string `json:"name"`
-	}
-
-	oauthToken struct {
-		Name string `json:"name"`
-	}
-	oauthUser struct {
+	User struct {
 		ProviderID string
 		Email      string
 		Name       string
@@ -50,29 +41,29 @@ const (
 	AppleProvider
 )
 
-func (r googleResponse) user() oauthUser {
-	return oauthUser{
+func (r googleResponse) user() User {
+	return User{
 		Email:      r.Email,
 		ProviderID: r.Sub,
 		Name:       r.Name,
 	}
 }
 
-func (r facebookResponse) user() oauthUser {
-	return oauthUser{
+func (r facebookResponse) user() User {
+	return User{
 		Email:      r.Email,
 		ProviderID: r.ID,
 		Name:       r.Name,
 	}
 }
 
-func GetUserData(provider Provider, accessToken string) (oauthUser, error) {
+func GetUserData(provider Provider, accessToken string) (User, error) {
 	switch provider {
 	case GoogleProvider:
 		return getGoogleUserData(accessToken)
 	case FacebookProvider:
 		return getFacebookUserData(accessToken)
 	default:
-		return oauthUser{}, fmt.Errorf("provider not supported")
+		return User{}, fmt.Errorf("provider not supported")
 	}
 }
