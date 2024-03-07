@@ -2,10 +2,7 @@ package oauthserver
 
 import (
 	"crypto/ecdsa"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -19,22 +16,7 @@ const (
 	redirectURI  = "https://example-app.com/redirect"
 )
 
-// parseECPrivateKey parses an ECDSA private key from a PEM encoded string
-func parseECPrivateKey(pemEncoded []byte) (*ecdsa.PrivateKey, error) {
-	block, _ := pem.Decode(pemEncoded)
-	if block == nil {
-		return nil, errors.New("failed to parse PEM block containing the key")
-	}
-
-	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse DER encoded private key: %v", err)
-	}
-
-	return privateKey.(*ecdsa.PrivateKey), nil
-}
-
-func getAppleClientSecret(appleClientID, appleTeamID, appleKeyID string, applePrivateKey []byte) (clientSecret string, err error) {
+func getAppleClientSecret(appleClientID, appleTeamID, appleKeyID string, applePrivateKey *ecdsa.PrivateKey) (clientSecret string, err error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
 		"iss": appleTeamID,
 		"iat": time.Now().Unix(),
@@ -46,13 +28,8 @@ func getAppleClientSecret(appleClientID, appleTeamID, appleKeyID string, applePr
 	// Set the Key ID (kid) header
 	token.Header["kid"] = appleKeyID
 
-	key, err := parseECPrivateKey(applePrivateKey)
-	if err != nil {
-		return clientSecret, fmt.Errorf("error parsing private key: %v", err)
-	}
-
 	// Sign and get the complete encoded token as a string
-	clientSecret, err = token.SignedString(key)
+	clientSecret, err = token.SignedString(applePrivateKey)
 	if err != nil {
 		return clientSecret, fmt.Errorf("error signing token: %v", err)
 	}
@@ -60,7 +37,7 @@ func getAppleClientSecret(appleClientID, appleTeamID, appleKeyID string, applePr
 	return clientSecret, nil
 }
 
-func GetAppleUserData(accessCode, appleClientID, appleTeamID, appleKeyID string, applePrivateKey []byte) (user User, err error) {
+func GetAppleUserData(accessCode, appleClientID, appleTeamID, appleKeyID string, applePrivateKey *ecdsa.PrivateKey) (user User, err error) {
 	appleClientSecret, err := getAppleClientSecret(appleClientID, appleTeamID, appleKeyID, applePrivateKey)
 	if err != nil {
 		return user, fmt.Errorf("error getting apple client secret: %v", err)
