@@ -1,7 +1,6 @@
 package oauthserver
 
 import (
-	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -16,7 +15,7 @@ const (
 	redirectURI  = "https://example-app.com/redirect"
 )
 
-func getAppleClientSecret(appleClientID, appleTeamID, appleKeyID string, applePrivateKey *ecdsa.PrivateKey) (clientSecret string, err error) {
+func getAppleClientSecret(appleClientID, appleTeamID, appleKeyID string, applePrivateKey interface{}) (clientSecret string, err error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
 		"iss": appleTeamID,
 		"iat": time.Now().Unix(),
@@ -37,7 +36,7 @@ func getAppleClientSecret(appleClientID, appleTeamID, appleKeyID string, applePr
 	return clientSecret, nil
 }
 
-func GetAppleUserData(accessCode, appleClientID, appleTeamID, appleKeyID string, applePrivateKey *ecdsa.PrivateKey) (user User, err error) {
+func GetAppleUserData(accessCode, appleClientID, appleTeamID, appleKeyID string, applePrivateKey interface{}) (user User, err error) {
 	appleClientSecret, err := getAppleClientSecret(appleClientID, appleTeamID, appleKeyID, applePrivateKey)
 	if err != nil {
 		return user, fmt.Errorf("error getting apple client secret: %v", err)
