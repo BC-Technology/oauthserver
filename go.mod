@@ -1,4 +1,4 @@
-module github.com/Black-Capital-Ventures/oauthserver
+module github.com/BC-Technology/oauthserver
 
 go 1.22.0
 
